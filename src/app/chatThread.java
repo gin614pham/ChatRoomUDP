@@ -1,43 +1,30 @@
 package app;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 
 public class chatThread extends Thread {
-    int multicastPort = 8888;
-    InetAddress multicastGroup;
-    DatagramSocket socket;
-    chatGUI gui;
+    DatagramSocket ds;
+    connectThread ct;
 
-    public chatThread(InetAddress multicastGroup, int multicastPort) throws UnknownHostException, IOException {
-        this.multicastGroup = multicastGroup;
-        this.multicastPort = multicastPort;
-        this.socket = new DatagramSocket();
+    public chatThread(connectThread ct, DatagramSocket ds) {
+        this.ds = ds;
+        this.ct = ct;
+    }
 
-        socket.joinGroup(new InetSocketAddress(multicastGroup, multicastPort),
-                NetworkInterface.getByInetAddress(InetAddress.getLocalHost()));
-        gui.frame.setVisible(true);
-        gui.btnSend.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String message = gui.textInput.getText();
-                    byte[] messageBytes = message.getBytes();
-                    DatagramPacket packet = new DatagramPacket(messageBytes, messageBytes.length, multicastGroup,
-                            multicastPort);
-                    socket.send(packet);
-                } catch (IOException e1) {
-                    // TODO Auto-generated catch block
-                    e1.printStackTrace();
-                }
+    public void run() {
+        try {
+            while (true) {
+                byte[] buffer = new byte[1024];
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                ds.receive(packet);
+                // System.out.println("Have: " + new String(packet.getData()).trim());
+                ct.extracted(packet);
             }
-        });
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 }

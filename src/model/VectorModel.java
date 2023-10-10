@@ -18,28 +18,36 @@ public class VectorModel extends Vector<chatModel> {
         return false;
     }
 
-    @Override
-    public int indexOf(Object o) {
-        if (o instanceof chatModel) {
-            chatModel model = (chatModel) o;
-            for (chatModel m : this) {
-                if (m.getIp().equals(model.getIp()) && m.getPort() == model.getPort()) {
-                    return this.indexOf(m);
-                }
-            }
-        }
-        return -1;
-    }
-
-    public Vector<String> toVectorStrings() {
+    public synchronized Vector<String> toVectorStrings() {
         Vector<String> v = new Vector<>();
-        for (chatModel m : this) {
+        VectorModel tg = this;
+        for (chatModel m : tg) {
             v.add(m.toString());
         }
         return v;
     }
 
-    public VectorModel ExtractedData(byte[] packet) {
+    public String extractedMethod(byte[] packet) {
+        String[] partsData = new String(packet).trim().split("\\|");
+        return partsData[2];
+    }
+
+    public synchronized boolean joined(byte[] packet) {
+        VectorModel data = new VectorModel();
+        data = extractedVector(packet);
+        return this.addAll(data);
+    }
+
+    public synchronized boolean leave(byte[] packet) {
+        return this.removeAll(extractedVector(packet));
+    }
+
+    public synchronized boolean update(byte[] packet) {
+        this.clear();
+        return this.addAll(extractedVector(packet));
+    }
+
+    public synchronized VectorModel extractedVector(byte[] packet) {
         VectorModel data = new VectorModel();
         String[] partsData = new String(packet).trim().split("\\|");
         String[] elements = partsData[1].substring(1, partsData[1].length() - 1).split(",");
@@ -60,20 +68,12 @@ public class VectorModel extends Vector<chatModel> {
                 }
             }
         }
+        return data;
+    }
 
-        switch (partsData[2]) {
-            case "JOINED":
-                this.addAll(data);
-                return data;
-            case "LEAVE":
-                this.removeAll(data);
-                break;
-            case "UPDATE":
-                this.clear();
-                this.addAll(data);
-                break;
-        }
-        return null;
+    public synchronized String extractedMsg(byte[] packet) {
+        String[] partsData = new String(packet).trim().split("\\|");
+        return partsData[1];
     }
 
 }
